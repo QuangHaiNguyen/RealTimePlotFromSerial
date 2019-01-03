@@ -2,6 +2,7 @@
 import threading
 import time
 import queue
+import serial
 
 
 def help_cmd_handle():
@@ -12,6 +13,10 @@ cmd_dict = {'help': help_cmd_handle}
 msgQueue = queue.Queue(1)
 msgQueue.put('stop')
 
+comport = serial.Serial()
+comport.baudrate = 115200
+comport.port = 'COM9'
+
 
 class CLIThread(threading.Thread):
     def __init__(self, thread_id, thread_name):
@@ -21,7 +26,7 @@ class CLIThread(threading.Thread):
 
     def run(self):
         while 1:
-            usr_input = input("> ")
+            usr_input = input("")
             user_input_split = usr_input.lower().split(' ')  # make sure the command is in lowercase
 
             if user_input_split[0] == 'quit':
@@ -50,10 +55,15 @@ class SerialThread(threading.Thread):
                 msg = msgQueue.get()
 
             if msg == 'stop':
+                comport.close()
                 msg = 'idle'
             elif msg == 'start':
-                print(self.thread_name)
-                time.sleep(5)
+                if not comport.is_open:
+                    comport.open()
+                msg = 'read'
+            elif msg == 'read':
+                byte = comport.read()
+                print(byte.decode())
             elif msg == 'quit':
                 break;
             elif msg == 'idle':
