@@ -1,21 +1,51 @@
 
 import threading
-import time
 import queue
 import serial
 
-
-def help_cmd_handle():
-    print('help function')
-
-
-cmd_dict = {'help': help_cmd_handle}
 msgQueue = queue.Queue(1)
 msgQueue.put('stop')
 
 comport = serial.Serial()
 comport.baudrate = 115200
 comport.port = 'COM9'
+
+
+def help_cmd_handle():
+    print('help function')
+
+
+def comport_cmd_handle(com):
+    print('comport: ' + com)
+
+
+def baudrate_cmd_handle(baud):
+    print('baudrate: ' + baud)
+
+
+def databit_cmd_handle(num_of_bit):
+    print('databit: ' + num_of_bit)
+
+
+def stopbit_cmd_handle(num_of_bit):
+    print('stopbit: ' + num_of_bit)
+
+
+def parity_cmd_handle(parity_conf):
+    print('parity: ' + parity_conf)
+
+
+def serial_cmd_handle(cmd):
+    msgQueue.put(cmd)
+
+
+cmd_dict = {'help': help_cmd_handle,
+            'comport': comport_cmd_handle,
+            'baudrate': baudrate_cmd_handle,
+            'databit': databit_cmd_handle,
+            'stopbit': stopbit_cmd_handle,
+            'parity': parity_cmd_handle,
+            'serial': serial_cmd_handle}
 
 
 class CLIThread(threading.Thread):
@@ -32,14 +62,12 @@ class CLIThread(threading.Thread):
             if user_input_split[0] == 'quit':
                 msgQueue.put('quit')
                 break
-            elif user_input_split[0] in ('start', 'stop'):
-                msgQueue.put(user_input_split[0])
+            elif user_input_split[0] == 'help':
+                cmd_dict[user_input_split[0]]()
             else:
                 for cmd, function in cmd_dict.items():
                     if user_input_split[0] == cmd:
-                        function()
-                    else:
-                        print('error')
+                        function(user_input_split[1])
         print('quit main function')
 
 
@@ -52,21 +80,25 @@ class SerialThread(threading.Thread):
     def run(self):
         while 1:
             if not msgQueue.empty():
-                msg = msgQueue.get()
+                machine_state = msgQueue.get()
 
-            if msg == 'stop':
+            if machine_state == 'stop':
                 comport.close()
-                msg = 'idle'
-            elif msg == 'start':
-                if not comport.is_open:
-                    comport.open()
-                msg = 'read'
-            elif msg == 'read':
+                machine_state = 'idle'
+            elif machine_state == 'start':
+                try:
+                    if not comport.is_open:
+                        comport.open()
+                        machine_state = 'read'
+                except:
+                    print("error")
+                    machine_state = 'idle'
+            elif machine_state == 'read':
                 byte = comport.read()
                 print(byte.decode())
-            elif msg == 'quit':
-                break;
-            elif msg == 'idle':
+            elif machine_state == 'quit':
+                break
+            elif machine_state == 'idle':
                 pass
             else:
                 print('error')
