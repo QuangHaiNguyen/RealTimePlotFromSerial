@@ -2,6 +2,30 @@
 import threading
 import queue
 import serial
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib import style
+import random
+matplotlib.use("TkAgg")
+
+style.use('fivethirtyeight')
+fig = plt.figure()
+ax1 = fig.add_subplot(1, 1, 1)
+
+y = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+x = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+
+
+def animate(i):
+    y.append(random.randint(1, 101))
+    y.pop(0)
+    xs = x.copy()
+    ys = y.copy()
+
+    ax1.clear()
+    ax1.plot(xs, ys)
+
 
 msgQueue = queue.Queue(1)
 msgQueue.put('stop')
@@ -106,6 +130,9 @@ class SerialThread(threading.Thread):
 
 cli_thread = CLIThread(1, "CLI_Thread")
 serial_thread = SerialThread(2, "SerialThread")
+
+ani = animation.FuncAnimation(fig, animate, interval=100)
+plt.show()
 
 
 def main():
